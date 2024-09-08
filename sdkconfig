@@ -373,17 +373,17 @@ CONFIG_PARTITION_TABLE_MD5=y
 #
 # MQTT Project Configuration
 #
-CONFIG_MQTT_BROKER_URL="mqtt://192.168.1.28:1883"
-CONFIG_MQTT_TOPIC="liwaisi-iot/general_temp_sensor"
-CONFIG_MQTT_USERNAME=""
-CONFIG_MQTT_PASSWORD=""
+CONFIG_MQTT_BROKER_URL="mqtt://mqtt.liwaisi.tech:1883"
+CONFIG_MQTT_TOPIC="/liwaisi/cam/pictures"
+CONFIG_MQTT_USERNAME="liwaisi"
+CONFIG_MQTT_PASSWORD="Liwaisi-Tech"
 # end of MQTT Project Configuration
 
 #
 # WiFi Project Configuration
 #
-CONFIG_ESP_WIFI_SSID="myssid"
-CONFIG_ESP_WIFI_PASSWORD="mypassword"
+CONFIG_ESP_WIFI_SSID="Liwaisi IoT WiFi"
+CONFIG_ESP_WIFI_PASSWORD="Liwaisi-IoT-WiFi"
 # CONFIG_ESP_WPA3_SAE_PWE_HUNT_AND_PECK is not set
 # CONFIG_ESP_WPA3_SAE_PWE_HASH_TO_ELEMENT is not set
 CONFIG_ESP_WPA3_SAE_PWE_BOTH=y

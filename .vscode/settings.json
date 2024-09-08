@@ -19,11 +19,7 @@
         "mqtt_producer.h": "c",
         "esp_mac.h": "c",
         "future": "c",
-        "system_error": "c",
-        "gpio.h": "c",
-        "nvs_flash.h": "c",
-        "esp32-cam.h": "c",
-        "esp_camera.h": "c"
+        "system_error": "c"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "idf.portWin": "COM3",

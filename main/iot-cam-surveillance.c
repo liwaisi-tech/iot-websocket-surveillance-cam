@@ -6,6 +6,7 @@
 #include <mqtt_producer.h>
 #include <nvs_flash.h>
 #include <cam_reader.h>
+#include <esp_camera.h>
 
 static const char *TAG = "iot-cam-surveillance";
 
@@ -32,7 +33,7 @@ void app_main(void)
     ESP_ERROR_CHECK(init_camera());
 
     //create the queue buffer with a size of 10 4-byte elements
-    buffer = xQueueCreate(10, sizeof(char*));
+    buffer = xQueueCreate(10, sizeof(camera_fb_t));
     // Create the tasks
     xTaskCreate(&task_read_cam_picture, "task_read_cam_picture", 4096, NULL, 5, NULL);
     xTaskCreate(&task_receive_queue_message, "task_receive_queue_message", 4096, NULL, 5, NULL);

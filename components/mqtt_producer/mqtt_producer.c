@@ -28,9 +28,12 @@
 
 #include "esp_log.h"
 #include "mqtt_client.h"
+#include <esp_camera.h>
+#include <cJSON.h>
+#include "mbedtls/base64.h"
 
 
-static const char *TAG = "mqtt_sensor_dht22";
+static const char *TAG = "mqtt:esp32-cam:producer";
 esp_mqtt_client_handle_t client;
 
 
@@ -125,9 +128,49 @@ esp_err_t mqtt_start(void)
     return ESP_OK;
 }
 
-void mqtt_send_message(char* data)
-{
-    ESP_LOGI(TAG, "Sending message: %s", data);
-    esp_mqtt_client_publish(client, CONFIG_MQTT_TOPIC, data, 0, 1, 0);
+char* convert_to_json_string(camera_fb_t* data) {
+    // Create a cJSON object
+    cJSON *json = cJSON_CreateObject();
+
+    // Calculate the size of the base64 encoded string
+    // size_t encoded_len = 0;
+    // mbedtls_base64_encode(NULL, 0, &encoded_len, data->buf, data->len);
+
+    // // Allocate memory for the base64 encoded string
+    // unsigned char *encoded_buf = (unsigned char *)malloc(encoded_len + 1);
+    // if (encoded_buf == NULL) {
+    //     cJSON_Delete(json);
+    //     return NULL;
+    // }
+
+    // // Encode the buffer data to a base64 string
+    // if (mbedtls_base64_encode(encoded_buf, encoded_len, &encoded_len, data->buf, data->len) != 0) {
+    //     free(encoded_buf);
+    //     cJSON_Delete(json);
+    //     return NULL;
+    // }
+    // encoded_buf[encoded_len] = '\0'; // Null-terminate the string
+
+    
+    //cJSON_AddStringToObject(json, "image", (const char*)encoded_buf);
+    cJSON_AddNumberToObject(json, "width", data->width);
+    cJSON_AddNumberToObject(json, "height", data->height);
+    cJSON_AddNumberToObject(json, "format", data->format);
+    cJSON_AddNumberToObject(json, "len", data->len);
+    cJSON_AddNumberToObject(json, "seconds", data->timestamp.tv_sec);
+    cJSON_AddNumberToObject(json, "microseconds", data->timestamp.tv_usec);
+
+    // Convert cJSON object to string
+    char* json_string = cJSON_Print(json);
+    // Clean up cJSON object
+    cJSON_Delete(json);
+
+    return json_string; // Remember to free this string after use
+}
+
+void mqtt_send_message(camera_fb_t* data)
+{   
+    esp_mqtt_client_publish(client, CONFIG_MQTT_TOPIC, (const unsigned char*)data->buf, data->len, 1, 0);
     free(data);
 }
+
