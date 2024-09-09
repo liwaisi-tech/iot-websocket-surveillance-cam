@@ -19,7 +19,11 @@
         "mqtt_producer.h": "c",
         "esp_mac.h": "c",
         "future": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "array": "c",
+        "vector": "c",
+        "xstring": "c",
+        "xutility": "c"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "idf.portWin": "COM3",

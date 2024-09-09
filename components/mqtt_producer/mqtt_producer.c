@@ -58,8 +58,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 {
     ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%" PRIi32 "", base, event_id);
     esp_mqtt_event_handle_t event = event_data;
-    esp_mqtt_client_handle_t client = event->client;
-    int msg_id;
     switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
@@ -170,7 +168,30 @@ char* convert_to_json_string(camera_fb_t* data) {
 
 void mqtt_send_message(camera_fb_t* data)
 {   
-    esp_mqtt_client_publish(client, CONFIG_MQTT_TOPIC, (const unsigned char*)data->buf, data->len, 1, 0);
-    free(data);
+    // Check if data->buf is NULL
+    if (data->buf == NULL) {
+        ESP_LOGE(TAG, "Buffer is NULL");
+        return;
+    }
+
+    // Check if data->len is valid
+    if (data->len == 0) {
+        ESP_LOGE(TAG, "Buffer length is 0");
+        return;
+    }
+    ESP_LOGI(TAG, "Message received length=%d", data->len);
+    char* message = (char*) malloc(data->len);
+    if (message == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate memory for message");
+        return;
+    }
+    memcpy(message, (char*)data->buf, data->len);
+    int msg_id = esp_mqtt_client_publish(client, CONFIG_MQTT_TOPIC, message, data->len, 1, 0);
+    if (msg_id == -1) {
+        ESP_LOGE(TAG, "Failed to publish message");
+    } else {
+        ESP_LOGI(TAG, "Message published successfully, msg_id=%d", msg_id);
+    }
+    free(message);
 }
 

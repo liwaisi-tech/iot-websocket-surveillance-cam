@@ -55,3 +55,4 @@ managed_components
 # Custom ignore
 
 sdkconfig.old
+.vscode

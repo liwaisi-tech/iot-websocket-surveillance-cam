@@ -64,7 +64,7 @@ esp_err_t init_camera(void)
         .ledc_channel = LEDC_CHANNEL_0,
 
         .pixel_format = PIXFORMAT_JPEG,
-        .frame_size = FRAMESIZE_QVGA,
+        .frame_size = FRAMESIZE_XGA,
 
         .jpeg_quality = 12,
         .fb_count = 1,
@@ -77,24 +77,13 @@ esp_err_t init_camera(void)
     return ESP_OK;
 }
 
-camera_fb_t * clone(camera_fb_t * data){
-    camera_fb_t * clone = (camera_fb_t *)malloc(sizeof(camera_fb_t));
-    clone->format = data->format;
-    clone->len = data->len;
-    clone->width = data->width;
-    clone->height = data->height;
-    clone->buf = (uint8_t *)malloc(data->len);
-    memcpy(clone->buf, data->buf, data->len);
-    return clone;
-}
-
 void task_read_cam_picture(){
      while (1)
     {
         ESP_LOGI(TAG, "Taking picture...");
         camera_fb_t *pic = esp_camera_fb_get();
         ESP_LOGI(TAG, "Picture taken! Its size was: %zu bytes", pic->len);
-        xQueueSend(buffer, clone(pic), 0);
+        xQueueSend(buffer, pic, 0);
         fflush(stdout);
         esp_camera_fb_return(pic);
         vTaskDelay(5000 / portTICK_RATE_MS);
