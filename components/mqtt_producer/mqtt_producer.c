@@ -54,8 +54,7 @@ static void log_error_if_nonzero(const char *message, int error_code)
  * @param event_id The id for the received event.
  * @param event_data The data for the event, esp_mqtt_event_handle_t.
  */
-static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
-{
+static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
     ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%" PRIi32 "", base, event_id);
     esp_mqtt_event_handle_t event = event_data;
     switch ((esp_mqtt_event_id_t)event_id) {
@@ -95,8 +94,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     }
 }
 
-static void mqtt_app_start(void)
-{
+static void mqtt_app_start(void) {
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri = CONFIG_MQTT_BROKER_URL,
         .credentials.authentication.password = CONFIG_MQTT_PASSWORD,
@@ -109,8 +107,7 @@ static void mqtt_app_start(void)
     esp_mqtt_client_start(client);
 }
 
-esp_err_t mqtt_start(void)
-{
+esp_err_t mqtt_start(void) {
     esp_log_level_set("*", ESP_LOG_INFO);
     esp_log_level_set("mqtt_client", ESP_LOG_VERBOSE);
     esp_log_level_set("mqtt_example", ESP_LOG_VERBOSE);
@@ -126,48 +123,7 @@ esp_err_t mqtt_start(void)
     return ESP_OK;
 }
 
-char* convert_to_json_string(camera_fb_t* data) {
-    // Create a cJSON object
-    cJSON *json = cJSON_CreateObject();
-
-    // Calculate the size of the base64 encoded string
-    // size_t encoded_len = 0;
-    // mbedtls_base64_encode(NULL, 0, &encoded_len, data->buf, data->len);
-
-    // // Allocate memory for the base64 encoded string
-    // unsigned char *encoded_buf = (unsigned char *)malloc(encoded_len + 1);
-    // if (encoded_buf == NULL) {
-    //     cJSON_Delete(json);
-    //     return NULL;
-    // }
-
-    // // Encode the buffer data to a base64 string
-    // if (mbedtls_base64_encode(encoded_buf, encoded_len, &encoded_len, data->buf, data->len) != 0) {
-    //     free(encoded_buf);
-    //     cJSON_Delete(json);
-    //     return NULL;
-    // }
-    // encoded_buf[encoded_len] = '\0'; // Null-terminate the string
-
-    
-    //cJSON_AddStringToObject(json, "image", (const char*)encoded_buf);
-    cJSON_AddNumberToObject(json, "width", data->width);
-    cJSON_AddNumberToObject(json, "height", data->height);
-    cJSON_AddNumberToObject(json, "format", data->format);
-    cJSON_AddNumberToObject(json, "len", data->len);
-    cJSON_AddNumberToObject(json, "seconds", data->timestamp.tv_sec);
-    cJSON_AddNumberToObject(json, "microseconds", data->timestamp.tv_usec);
-
-    // Convert cJSON object to string
-    char* json_string = cJSON_Print(json);
-    // Clean up cJSON object
-    cJSON_Delete(json);
-
-    return json_string; // Remember to free this string after use
-}
-
-void mqtt_send_message(camera_fb_t* data)
-{   
+void mqtt_send_message(camera_fb_t* data) {   
     // Check if data->buf is NULL
     if (data->buf == NULL) {
         ESP_LOGE(TAG, "Buffer is NULL");

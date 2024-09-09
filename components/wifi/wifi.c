@@ -71,8 +71,7 @@ static int s_retry_num = 0;
 
 
 static void event_handler(void* arg, esp_event_base_t event_base,
-                                int32_t event_id, void* event_data)
-{
+                                int32_t event_id, void* event_data) {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
@@ -92,8 +91,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-esp_err_t wifi_init_sta(void)
-{
+esp_err_t wifi_init_sta(void) {
     s_wifi_event_group = xEventGroupCreate();
 
     ESP_ERROR_CHECK(esp_netif_init());

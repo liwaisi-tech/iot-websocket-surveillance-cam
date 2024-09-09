@@ -18,8 +18,7 @@ void log_startup_info() {
     ESP_LOGI(TAG, "IDF version: %s", esp_get_idf_version());
 }
 
-void app_main(void)
-{
+void app_main(void) {
     log_startup_info();
     // Initialize wifi
     esp_err_t ret = nvs_flash_init();

@@ -34,12 +34,11 @@
 #define portTICK_RATE_MS portTICK_PERIOD_MS
 #endif
 
+static const char *TAG = "example:take_picture";
 extern QueueHandle_t buffer;
 
-static const char *TAG = "example:take_picture";
 
-esp_err_t init_camera(void)
-{
+esp_err_t init_camera(void) {
     camera_config_t camera_config = {
         .pin_pwdn  = CAM_PIN_PWDN,
         .pin_reset = CAM_PIN_RESET,
@@ -70,16 +69,14 @@ esp_err_t init_camera(void)
         .fb_count = 1,
         .grab_mode = CAMERA_GRAB_WHEN_EMPTY};//CAMERA_GRAB_LATEST. Sets when buffers should be filled
     esp_err_t err = esp_camera_init(&camera_config);
-    if (err != ESP_OK)
-    {
+    if (err != ESP_OK) {
         return err;
     }
     return ESP_OK;
 }
 
-void task_read_cam_picture(){
-     while (1)
-    {
+void task_read_cam_picture() {
+     while (1) {
         ESP_LOGI(TAG, "Taking picture...");
         camera_fb_t *pic = esp_camera_fb_get();
         ESP_LOGI(TAG, "Picture taken! Its size was: %zu bytes", pic->len);

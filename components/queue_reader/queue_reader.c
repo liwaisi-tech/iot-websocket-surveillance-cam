@@ -6,10 +6,8 @@
 
 extern QueueHandle_t buffer;
 
-void task_receive_queue_message(void *pvParameter)
-{
-    while (true)
-    {
+void task_receive_queue_message(void *pvParameter) {
+    while (true) {
         camera_fb_t data;
         xQueueReceive(buffer, &data, portMAX_DELAY);
         // Send the picture data to the MQTT broker
