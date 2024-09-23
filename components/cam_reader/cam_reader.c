@@ -63,9 +63,9 @@ esp_err_t init_camera(void) {
         .ledc_channel = LEDC_CHANNEL_0,
 
         .pixel_format = PIXFORMAT_JPEG,
-        .frame_size = FRAMESIZE_XGA,
+        .frame_size = FRAMESIZE_UXGA,
 
-        .jpeg_quality = 12,
+        .jpeg_quality = 45,
         .fb_count = 1,
         .grab_mode = CAMERA_GRAB_WHEN_EMPTY};//CAMERA_GRAB_LATEST. Sets when buffers should be filled
     esp_err_t err = esp_camera_init(&camera_config);
@@ -83,6 +83,6 @@ void task_read_cam_picture() {
         xQueueSend(buffer, pic, 0);
         fflush(stdout);
         esp_camera_fb_return(pic);
-        vTaskDelay(5000 / portTICK_RATE_MS);
+        vTaskDelay(3000 / portTICK_RATE_MS);
     }
 }
