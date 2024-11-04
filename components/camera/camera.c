@@ -90,8 +90,8 @@ esp_err_t camera_init(void)
         .ledc_timer = LEDC_TIMER_0,
         .ledc_channel = LEDC_CHANNEL_0,
         .pixel_format = PIXFORMAT_JPEG,
-        .frame_size = FRAMESIZE_QSXGA,
-        .jpeg_quality = 63,
+        .frame_size = FRAMESIZE_UXGA,
+        .jpeg_quality = 25,
         .fb_count = 1,
         .grab_mode = CAMERA_GRAB_WHEN_EMPTY}; // CAMERA_GRAB_LATEST. Sets when buffers should be filled
     esp_err_t err = esp_camera_init(&camera_config);
