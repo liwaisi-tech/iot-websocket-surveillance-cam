@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32-CAM WebSocket Viewer</title>
+    <style>
+        .video-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .video-box {
+            position: relative;
+            width: 320px;
+            margin: 10px;
+        }
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: red;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+        }
+        canvas {
+            border: 1px solid #ccc;
+        }
+        .status {
+            margin-top: 5px;
+            text-align: center;
+        }
+        .connected {
+            color: green;
+        }
+        .disconnected {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <input type="text" id="wsUrl" placeholder="ws://192.168.1.48/ws" value="ws://192.168.1.48/ws">
+        <button onclick="connectWebSocket()">Connect</button>
+    </div>
+    <div id="videoContainer" class="video-container"></div>
+    <script>
+        class VideoStream {
+            constructor(url) {
+                this.url = url;
+                this.ws = null;
+                this.canvas = null;
+                this.container = null;
+                this.status = null;
+                this.createVideoBox();
+                this.connect();
+            }
+
+            createVideoBox() {
+                // Create container for this video stream
+                this.container = document.createElement('div');
+                this.container.className = 'video-box';
+
+                // Create canvas for video display
+                this.canvas = document.createElement('canvas');
+                this.canvas.width = 320;
+                this.canvas.height = 240;
+
+                // Create close button
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'close-btn';
+                closeBtn.innerHTML = '×';
+                closeBtn.onclick = () => this.destroy();
+
+                // Create status indicator
+                this.status = document.createElement('div');
+                this.status.className = 'status disconnected';
+                this.status.textContent = 'Disconnected';
+
+                // Add elements to container
+                this.container.appendChild(this.canvas);
+                this.container.appendChild(closeBtn);
+                this.container.appendChild(this.status);
+
+                // Add to main video container
+                document.getElementById('videoContainer').appendChild(this.container);
+            }
+
+            connect() {
+                try {
+                    this.ws = new WebSocket(this.url);
+                    this.ws.binaryType = 'arraybuffer';
+
+                    this.ws.onopen = () => {
+                        this.status.className = 'status connected';
+                        this.status.textContent = 'Connected';
+                    };
+
+                    this.ws.onclose = () => {
+                        this.status.className = 'status disconnected';
+                        this.status.textContent = 'Disconnected';
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket Error:', error);
+                        this.status.className = 'status disconnected';
+                        this.status.textContent = 'Error';
+                    };
+
+                    this.ws.onmessage = (event) => this.handleFrame(event.data);
+                } catch (error) {
+                    console.error('Connection Error:', error);
+                    this.status.className = 'status disconnected';
+                    this.status.textContent = 'Connection Error';
+                }
+            }
+
+            handleFrame(data) {
+                const ctx = this.canvas.getContext('2d');
+                createImageBitmap(new Blob([data], { type: 'image/jpeg' }))
+                    .then(imageBitmap => {
+                        ctx.drawImage(imageBitmap, 0, 0, this.canvas.width, this.canvas.height);
+                    })
+                    .catch(error => console.error('Error drawing frame:', error));
+            }
+
+            destroy() {
+                if (this.ws) {
+                    this.ws.close();
+                }
+                this.container.remove();
+            }
+        }
+
+        function connectWebSocket() {
+            const wsUrl = document.getElementById('wsUrl').value;
+            if (wsUrl) {
+                new VideoStream(wsUrl);
+            } else {
+                alert('Please enter a WebSocket URL');
+            }
+        }
+    </script>
+</body>
+</html> 
