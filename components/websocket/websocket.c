@@ -13,9 +13,18 @@
 
 static const char *TAG = "websocket";
 
-// Add forward declaration
+// Add structure to hold stream context
+typedef struct {
+    httpd_handle_t hd;
+    int fd;
+    esp_timer_handle_t timer;
+    bool is_streaming;
+} stream_context_t;
+
+// Forward declarations
 static void stream_camera_frame(void* arg);
 static esp_err_t start_video_stream(httpd_handle_t handle, int socket_fd);
+static void cleanup_stream_context(stream_context_t *ctx);
 
 struct async_resp_arg {
     httpd_handle_t hd;
@@ -53,7 +62,7 @@ static esp_err_t trigger_async_send(httpd_handle_t handle, httpd_req_t *req)
     return ret;
 }
 
-esp_err_t ws_handler(httpd_req_t *req)
+static esp_err_t ws_handler(httpd_req_t *req)
 {
     if (req->method == HTTP_GET) {
         ESP_LOGI(TAG, "Handshake done, the new connection was opened");
@@ -61,12 +70,20 @@ esp_err_t ws_handler(httpd_req_t *req)
     }
 
     httpd_ws_frame_t ws_pkt;
+    uint8_t *buf = NULL;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
     
+    // First receive the frame len
     esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "httpd_ws_recv_frame failed with %d", ret);
+        ESP_LOGE(TAG, "httpd_ws_recv_frame failed: %d", ret);
         return ret;
+    }
+
+    // Handle close messages
+    if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE) {
+        // Cleanup will be handled by the connection close callback
+        return ESP_OK;
     }
 
     return ESP_OK;
@@ -101,54 +118,75 @@ esp_err_t stop_webserver(httpd_handle_t server)
     return httpd_stop(server);
 }
 
-esp_err_t start_video_stream(httpd_handle_t handle, int socket_fd)
+static esp_err_t start_video_stream(httpd_handle_t handle, int socket_fd)
 {
-    struct async_resp_arg *arg = malloc(sizeof(struct async_resp_arg));
-    if (arg == NULL) {
+    stream_context_t *ctx = calloc(1, sizeof(stream_context_t));
+    if (ctx == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate stream context");
         return ESP_ERR_NO_MEM;
     }
-    arg->hd = handle;
-    arg->fd = socket_fd;
+
+    ctx->hd = handle;
+    ctx->fd = socket_fd;
+    ctx->is_streaming = true;
     
-    // Start a timer to capture and send frames periodically
     esp_timer_create_args_t timer_args = {
         .callback = &stream_camera_frame,
-        .arg = arg,
+        .arg = ctx,
         .name = "camera_stream"
     };
     
-    esp_timer_handle_t timer;
-    ESP_ERROR_CHECK(esp_timer_create(&timer_args, &timer));
-    ESP_ERROR_CHECK(esp_timer_start_periodic(timer, 100000)); // 100ms interval
+    esp_err_t ret = esp_timer_create(&timer_args, &ctx->timer);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to create timer: %d", ret);
+        cleanup_stream_context(ctx);
+        return ret;
+    }
+
+    ret = esp_timer_start_periodic(ctx->timer, 50000); // 50ms interval
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start timer: %d", ret);
+        cleanup_stream_context(ctx);
+        return ret;
+    }
     
     return ESP_OK;
 }
 
 static void stream_camera_frame(void* arg)
 {
-    struct async_resp_arg *resp_arg = (struct async_resp_arg *)arg;
-    if (!resp_arg) {
-        ESP_LOGE(TAG, "Invalid argument");
+    stream_context_t *ctx = (stream_context_t *)arg;
+    if (!ctx || !ctx->is_streaming) {
         return;
     }
     
-    // Capture frame
     camera_fb_t *fb = esp_camera_fb_get();
     if (!fb) {
         ESP_LOGE(TAG, "Camera capture failed");
         return;
     }
 
-    // Prepare WebSocket packet
-    httpd_ws_frame_t ws_pkt;
-    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.payload = fb->buf;
-    ws_pkt.len = fb->len;
-    ws_pkt.type = HTTPD_WS_TYPE_BINARY; // Use binary type for image data
+    httpd_ws_frame_t ws_pkt = {
+        .payload = fb->buf,
+        .len = fb->len,
+        .type = HTTPD_WS_TYPE_BINARY
+    };
 
-    // Send frame
-    httpd_ws_send_frame_async(resp_arg->hd, resp_arg->fd, &ws_pkt);
+    esp_err_t ret = httpd_ws_send_frame_async(ctx->hd, ctx->fd, &ws_pkt);
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to send frame: %d", ret);
+        ctx->is_streaming = false;  // Stop streaming on error
+    }
     
-    // Return frame buffer
     esp_camera_fb_return(fb);
+}
+
+static void cleanup_stream_context(stream_context_t *ctx) {
+    if (ctx) {
+        if (ctx->timer) {
+            esp_timer_stop(ctx->timer);
+            esp_timer_delete(ctx->timer);
+        }
+        free(ctx);
+    }
 }
