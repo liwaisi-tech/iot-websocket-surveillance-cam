@@ -11,7 +11,7 @@
 #include "esp_camera.h"
 #include "esp_timer.h"
 
-static const char *TAG = "websocket";
+static const char *TAG = "iot-cam-surveillance:websocket";
 
 // Add structure to hold stream context
 typedef struct {
@@ -143,7 +143,7 @@ static esp_err_t start_video_stream(httpd_handle_t handle, int socket_fd)
         return ret;
     }
 
-    ret = esp_timer_start_periodic(ctx->timer, 50000); // 50ms interval
+    ret = esp_timer_start_periodic(ctx->timer, 10000); // 50ms interval
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start timer: %d", ret);
         cleanup_stream_context(ctx);

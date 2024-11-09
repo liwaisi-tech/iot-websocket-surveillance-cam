@@ -20,13 +20,19 @@
             position: absolute;
             top: 5px;
             right: 5px;
-            background: red;
+            background: rgba(255, 0, 0, 0.7);
             color: white;
             border: none;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
         }
         canvas {
             border: 1px solid #ccc;
@@ -34,12 +40,18 @@
         .status {
             margin-top: 5px;
             text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            padding: 3px;
+            border-radius: 4px;
         }
         .connected {
-            color: green;
+            color: white;
+            background-color: rgba(0, 128, 0, 0.7);
         }
         .disconnected {
-            color: red;
+            color: white;
+            background-color: rgba(255, 0, 0, 0.7);
         }
     </style>
 </head>
@@ -57,6 +69,11 @@
                 this.canvas = null;
                 this.container = null;
                 this.status = null;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 4;
+                this.reconnectTimeouts = [0, 3000, 10000, 30000, 60000]; // in milliseconds
+                this.heartbeatInterval = null;
+                this.lastMessageTime = null;
                 this.createVideoBox();
                 this.connect();
             }
@@ -99,24 +116,81 @@
                     this.ws.onopen = () => {
                         this.status.className = 'status connected';
                         this.status.textContent = 'Connected';
+                        this.reconnectAttempts = 0;
+                        this.lastMessageTime = Date.now();
+                        this.startHeartbeat();
                     };
 
                     this.ws.onclose = () => {
-                        this.status.className = 'status disconnected';
-                        this.status.textContent = 'Disconnected';
+                        this.handleDisconnection();
                     };
 
                     this.ws.onerror = (error) => {
                         console.error('WebSocket Error:', error);
                         this.status.className = 'status disconnected';
                         this.status.textContent = 'Error';
+                        this.handleDisconnection();
                     };
 
-                    this.ws.onmessage = (event) => this.handleFrame(event.data);
+                    this.ws.onmessage = (event) => {
+                        this.lastMessageTime = Date.now();
+                        this.handleFrame(event.data);
+                    };
                 } catch (error) {
                     console.error('Connection Error:', error);
                     this.status.className = 'status disconnected';
                     this.status.textContent = 'Connection Error';
+                    this.handleDisconnection();
+                }
+            }
+
+            startHeartbeat() {
+                // Clear any existing heartbeat interval
+                if (this.heartbeatInterval) {
+                    clearInterval(this.heartbeatInterval);
+                }
+
+                // Check connection every 3 seconds
+                this.heartbeatInterval = setInterval(() => {
+                    const now = Date.now();
+                    // If no messages received in last 5 seconds, consider connection dead
+                    if (this.lastMessageTime && (now - this.lastMessageTime) > 5000) {
+                        console.log('Connection timeout detected');
+                        this.ws.close();
+                        this.handleDisconnection();
+                    }
+                }, 3000);
+            }
+
+            handleDisconnection() {
+                if (this.heartbeatInterval) {
+                    clearInterval(this.heartbeatInterval);
+                    this.heartbeatInterval = null;
+                }
+                
+                this.status.className = 'status disconnected';
+                this.status.textContent = 'Disconnected';
+                
+                if (this.ws) {
+                    this.ws.close();
+                    this.ws = null;
+                }
+                
+                this.tryReconnect();
+            }
+
+            tryReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    const timeout = this.reconnectTimeouts[this.reconnectAttempts];
+                    this.status.textContent = `Reconnecting in ${timeout/1000}s...`;
+                    
+                    setTimeout(() => {
+                        this.reconnectAttempts++;
+                        this.status.textContent = 'Attempting to reconnect...';
+                        this.connect();
+                    }, timeout);
+                } else {
+                    this.status.textContent = 'Connection failed. Please try manually.';
                 }
             }
 
@@ -130,6 +204,9 @@
             }
 
             destroy() {
+                if (this.heartbeatInterval) {
+                    clearInterval(this.heartbeatInterval);
+                }
                 if (this.ws) {
                     this.ws.close();
                 }
